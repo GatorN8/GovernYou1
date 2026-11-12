@@ -81,10 +81,10 @@ function header(eyebrow,title,desc){return `<div class="page-head"><div><div cla
 function infoBanner(){
   const success=Object.entries(state.feedSources).filter(([k,v])=>v.state==='ok').map(([k])=>k);
   const issues=Object.entries(state.feedSources).filter(([k,v])=>v.state==='unavailable'||v.state==='needs_api_key').map(([k])=>k);
-  let message='The included research snapshot was last checked November 11, 2026. Automatic federal updates are not activated. Follow original links to check newer actions.';
-  let heading='Research snapshot — not live';
+  let message='This view includes a research snapshot from November 11, 2026. A live federal feed is checked when the page opens; any unavailable source will be labeled. Indiana and local records remain historical.';
+  let heading='Research snapshot — some records may be historical';
   if(state.feedStatus==='synced'||state.feedStatus==='partial'){
-    heading=state.feedStatus==='synced'?'Official records imported':'Partial official-record update';
+    heading=state.feedStatus==='synced'?'Live official-source records checked':'Live federal feed — partial coverage';
     message=`Federal source imports last completed ${new Date(state.feedLastSuccess).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}. Updated: ${success.join(', ')||'none'}. ${issues.length?'Unavailable or pending: '+issues.join(', ')+'.':''} Historical local entries remain the original November 11 snapshot. An import is not instantaneous reporting.`;
   }
   return `<div class="note-bar" role="note"><span aria-hidden="true">ⓘ</span><div><strong>${esc(heading)}.</strong> ${esc(message)} <button class="textaction" data-refresh="1" type="button">Check for published updates ↻</button></div></div>`;
@@ -100,9 +100,9 @@ function showCongress(){let items=records.filter(r=>r.level==='Federal'&&(state.
 function showLocal(){const a=state.localArea;let items=records.filter(r=>['Local','State'].includes(r.level)&&(a==='All'||(a==='Indiana'?r.level==='State':r.area===a)));return header('Your communities','State & Local','Keep Indiana, New Haven, Fort Wayne and Allen County distinct while following their public records.')+infoBanner()+`<div class="filters">${['All','Indiana','New Haven','Fort Wayne','Allen County'].map(area=>`<button class="filter ${a===area?'active':''}" data-area="${esc(area)}" aria-pressed="${a===area}">${esc(area)}</button>`).join('')}</div>`+(a==='New Haven'?empty('New Haven: official documents available','No New Haven meeting outcome has been independently verified for this preview. The source portal below provides official current agendas; nothing has been invented to fill the feed.'):recordsCards(items))+`<div class="section-head"><h2>Official local records</h2></div>`+renderResources(sources.filter(s=>/New Haven|Fort Wayne|Allen County|Indiana General Assembly/.test(s.title)))}
 function showMoney(){const items=records.filter(r=>r.type==='money'||r.id==='budget-amend');return header('Public financial accountability','Follow the public money.','Track real proposals and source documents without confusing contracts, budgets, authorizations or spending.')+infoBanner()+`<div class="metricrow"><div class="metric"><strong>Proposed</strong><span>Listed contract figures are proposals in documents, not verified payments</span></div><div class="metric"><strong>Not confirmed</strong><span>Final approval votes and executed contracts for these examples</span></div><div class="metric"><strong>Not imported</strong><span>Annual financial-report totals from Indiana Gateway</span></div></div><div class="note-bar"><span>⚠</span><div><strong>Financial interpretation:</strong> These are individual proposed contract amounts. Do not add them together as total budget spending or compare them to expenditure totals. Funding sources, amendments and actual payments require further records.</div></div>${subsection('Proposed contracts and appropriations','',null)}${recordsCards(items)}${subsection('Finance records you can investigate','',null)}${renderResources(sources.filter(s=>/Gateway/.test(s.title)))}`}
 function renderResources(items){return `<div class="resource-list">${items.map(s=>`<div class="resource"><div><strong>${esc(s.title)}</strong><span>${esc(s.kind)} · ${esc(s.desc)}</span></div><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">Open official source ↗</a></div>`).join('')}</div>`}
-function showExplore(){const q=state.query.trim().toLowerCase();let items=records.filter(r=>[r.title,r.summary,r.area,r.label,r.category,r.status,r.people].some(s=>String(s||'').toLowerCase().includes(q)));if(state.filter!=='All')items=items.filter(r=>r.level===state.filter);return header('Research desk','Explore records','Search this verified snapshot by topic, bill, vote, government body or project. Broader database search is planned.')+infoBanner()+filterButtons([['All','All levels'],['Federal','Federal'],['State','State'],['Local','Local']])+`<p class="subnote" style="margin:0 0 14px">Showing ${items.length} of ${records.length} sourced records${q?' for “'+esc(state.query)+'”':''}. Search is limited to this preview’s included records.</p>`+recordsCards(items)+subsection('Primary-source directory','',null)+renderResources(sources)}
+function showExplore(){const q=state.query.trim().toLowerCase();let items=records.filter(r=>[r.title,r.summary,r.area,r.label,r.category,r.status,r.people].some(s=>String(s||'').toLowerCase().includes(q)));if(state.filter!=='All')items=items.filter(r=>r.level===state.filter);return header('Research desk','Explore records','Search imported official records and dated research entries by topic, vote, government body or project. Full legislative history search is planned.')+infoBanner()+filterButtons([['All','All levels'],['Federal','Federal'],['State','State'],['Local','Local']])+`<p class="subnote" style="margin:0 0 14px">Showing ${items.length} of ${records.length} sourced records${q?' for “'+esc(state.query)+'”':''}. Search covers the records presently loaded, not every bill in Congress.</p>`+recordsCards(items)+subsection('Primary-source directory','',null)+renderResources(sources)}
 function showSaved(){const items=records.filter(r=>state.saved.has(r.id));return header('Your research','Saved records','Bookmark items you want to revisit. Saved state is stored on this device and browser, not synchronized to an account.')+(state.canStore?'':`<div class="note-bar">Browser storage is unavailable. Saves will only last until this page is closed.</div>`)+(items.length?recordsCards(items):empty('Nothing saved yet','Use ☆ Save on a record to bookmark it in this browser.'))+(items.length?'':`<p class="subnote" style="margin-top:12px">Use ☆ Save on any record in Today, Congress, State & Local, Public Money or Explore.</p>`)}
-function render(){if(!views.some(v=>v[0]===state.view))state.view='today';renderNav();const map={today:showToday,congress:showCongress,local:showLocal,money:showMoney,explore:showExplore,saved:showSaved};CONTENT.innerHTML=map[state.view]()+`<div class="footer">Congress Compass · v0.2 · Official-source importer ready · Timestamps are source-check times, not evidence of a new vote · No third-party analytics</div>`}
+function render(){if(!views.some(v=>v[0]===state.view))state.view='today';renderNav();const map={today:showToday,congress:showCongress,local:showLocal,money:showMoney,explore:showExplore,saved:showSaved};CONTENT.innerHTML=map[state.view]()+`<div class="footer">Congress Compass · v0.3 · Live federal feed · Timestamps are source-check times, not evidence of a new vote · No third-party analytics</div>`}
 function toast(message){const el=document.getElementById('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2100)}
 function go(view){if(!views.some(v=>v[0]===view))return;state.view=view;state.filter='All';location.hash=view;render();window.scrollTo({top:0,behavior:'instant'});CONTENT.focus({preventScroll:true})}
 function save(id){if(!records.some(r=>r.id===id))return;const was=state.saved.has(id);was?state.saved.delete(id):state.saved.add(id);try{localStorage.setItem('cc:saved:v1',JSON.stringify([...state.saved]))}catch(e){state.canStore=false}render();toast(was?'Removed from saved':'Saved to this browser'+(state.canStore?'':' (temporary only)'))}
@@ -115,7 +115,7 @@ window.addEventListener('hashchange',()=>{state.view=location.hash.replace('#','
 
 async function loadFederalFeed(manual=false){
   try{
-    const response=await fetch('./data/federal.json',{cache:'no-store'});
+    const response=await fetch('./api/federal',{cache:'no-store'});
     if(!response.ok)throw new Error('feed unavailable');
     const feed=await response.json();
     if(feed.schemaVersion!==1||!Array.isArray(feed.records))throw new Error('Unexpected feed format');
@@ -128,19 +128,19 @@ async function loadFederalFeed(manual=false){
       if(r.id==='fed:house:2026:319')superseded.add('house319');
       if(r.id==='fed:house:2026:316')superseded.add('house316');
     }
-    records=[...live,...snapshotRecords.filter(r=>!superseded.has(r.id))];
+    records=[...live,...snapshotRecords.filter(r=>!superseded.has(r.id)&&!ids.has(r.id))];
     state.feedSources=feed.sources||{};
     const successes=Object.values(state.feedSources).filter(x=>x&&x.state==='ok'&&x.lastSuccess);
     state.feedLastSuccess=successes.length?successes.map(x=>x.lastSuccess).sort().at(-1):null;
-    state.feedStatus=successes.length?(successes.length===3?'synced':'partial'):'snapshot';
+    state.feedStatus=successes.length?(successes.length===Object.keys(state.feedSources).length?'synced':'partial'):'snapshot';
     if(state.feedLastSuccess){
       document.getElementById('sideStamp').textContent='Federal check: '+fmtDate(state.feedLastSuccess.slice(0,10));
-      document.getElementById('sideSync').textContent=state.feedStatus==='synced'?'All 3 sources imported':'Partial source coverage';
+      document.getElementById('sideSync').textContent=state.feedStatus==='synced'?'All configured sources verified':'Partial source coverage';
     }
     render();
     if(manual)toast(state.feedLastSuccess?'Published records checked. Import timestamp: '+state.feedLastSuccess.slice(0,10):'No active imported records yet');
   }catch(e){
-    if(manual)toast('No published feed available; showing last built-in snapshot');
+    if(manual)toast('Live feed unavailable; showing dated research snapshot');
     if(!state.feedLastSuccess){state.feedStatus='snapshot';render()}
   }
 }

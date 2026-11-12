@@ -1,0 +1,4 @@
+{
+  "version": 2,
+  "crons": [{"path": "/api/federal", "schedule": "0 12 * * *"}]
+}
